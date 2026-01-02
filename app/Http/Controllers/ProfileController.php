@@ -2,59 +2,96 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ProfileUpdateRequest;
-use Illuminate\Http\RedirectResponse;
+use App\Http\Controllers\Controller;
+use App\Models\Favorite;
+use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Redirect;
-use Illuminate\View\View;
+use Illuminate\Support\Facades\Storage;
 
 class ProfileController extends Controller
 {
-    /**
-     * Display the user's profile form.
-     */
-    public function edit(Request $request): View
+    public function edit()
     {
-        return view('profile.edit', [
-            'user' => $request->user(),
-        ]);
+        $user = Auth::user();
+        return view('profile.edit', compact('user'));
     }
 
-    /**
-     * Update the user's profile information.
-     */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function update(Request $request)
     {
-        $request->user()->fill($request->validated());
+        $user = Auth::user();
+        
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:500',
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+        ]);
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        if ($request->hasFile('avatar')) {
+            if ($user->avatar) {
+                Storage::disk('public')->delete($user->avatar);
+            }
+            $validated['avatar'] = $request->file('avatar')->store('avatars', 'public');
         }
 
-        $request->user()->save();
+        $user->update($validated);
 
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        return redirect()->route('profile.edit')
+            ->with('success', 'Profile updated successfully! 🎉');
     }
 
-    /**
-     * Delete the user's account.
-     */
-    public function destroy(Request $request): RedirectResponse
+    public function history()
     {
-        $request->validateWithBag('userDeletion', [
-            'password' => ['required', 'current_password'],
+        $transactions = Transaction::where('user_id', Auth::id())
+            ->with('car')
+            ->latest()
+            ->paginate(10);
+            
+        return view('profile.history', compact('transactions'));
+    }
+
+    public function favorites()
+    {
+        $favorites = Favorite::where('user_id', Auth::id())
+            ->with('car')
+            ->latest()
+            ->paginate(12);
+            
+        return view('profile.favorites', compact('favorites'));
+    }
+
+    public function toggleFavorite(Request $request)
+    {
+        $request->validate([
+            'car_id' => 'required|exists:cars,id'
         ]);
 
-        $user = $request->user();
+        $userId = Auth::id();
+        $carId = $request->car_id;
 
-        Auth::logout();
+        $favorite = Favorite::where('user_id', $userId)
+            ->where('car_id', $carId)
+            ->first();
 
-        $user->delete();
+        if ($favorite) {
+            $favorite->delete();
+            $message = 'Removed from favorites! 💔';
+            $isFavorite = false;
+        } else {
+            Favorite::create([
+                'user_id' => $userId,
+                'car_id' => $carId
+            ]);
+            $message = 'Added to favorites! 💖';
+            $isFavorite = true;
+        }
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return Redirect::to('/');
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'is_favorite' => $isFavorite
+        ]);
     }
 }
