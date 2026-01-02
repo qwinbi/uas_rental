@@ -1,47 +1,132 @@
-<x-guest-layout>
-    <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
+@extends('layouts.app')
 
-    <form method="POST" action="{{ route('login') }}">
-        @csrf
+@section('title', 'Login - HoppWheels')
 
-        <!-- Email Address -->
-        <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+@section('content')
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card border-0 shadow-lg">
+                <div class="card-header bg-white border-0 text-center py-4">
+                    <a href="{{ route('home') }}" class="d-inline-block mb-3">
+                        @php
+                            $logo = \App\Models\Logo::first();
+                            $logoUrl = $logo->logo_url ?? asset('images/logo.png');
+                        @endphp
+                        <img src="{{ $logoUrl }}" alt="HoppWheels Logo" height="40">
+                    </a>
+                    <h2 class="text-indigo-night fw-bold mb-0">Welcome Back!</h2>
+                    <p class="text-muted mb-0">Sign in to your HoppWheels account</p>
+                </div>
+
+                <div class="card-body p-4 p-md-5">
+                    <form method="POST" action="{{ route('login') }}">
+                        @csrf
+
+                        <div class="mb-4">
+                            <label for="email" class="form-label text-ocean-noir fw-semibold">
+                                <i class="fas fa-envelope me-2"></i>Email Address
+                            </label>
+                            <input id="email" type="email" class="form-control form-control-lg @error('email') is-invalid @enderror" 
+                                   name="email" value="{{ old('email') }}" required autocomplete="email" autofocus
+                                   placeholder="Enter your email address">
+                            @error('email')
+                                <span class="invalid-feedback" role="alert">
+                                    <strong>{{ $message }}</strong>
+                                </span>
+                            @enderror
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <label for="password" class="form-label text-ocean-noir fw-semibold">
+                                    <i class="fas fa-lock me-2"></i>Password
+                                </label>
+                                @if (Route::has('password.request'))
+                                    <a class="btn btn-link p-0 text-decoration-none text-soft-berry" href="{{ route('password.request') }}">
+                                        Forgot Password?
+                                    </a>
+                                @endif
+                            </div>
+                            <input id="password" type="password" class="form-control form-control-lg @error('password') is-invalid @enderror" 
+                                   name="password" required autocomplete="current-password"
+                                   placeholder="Enter your password">
+                            @error('password')
+                                <span class="invalid-feedback" role="alert">
+                                    <strong>{{ $message }}</strong>
+                                </span>
+                            @enderror
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="remember" id="remember" {{ old('remember') ? 'checked' : '' }}>
+                                <label class="form-check-label text-muted" for="remember">
+                                    Remember me
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <button type="submit" class="btn btn-primary btn-lg w-100 py-3 fw-semibold">
+                                <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                            </button>
+                        </div>
+
+                        <div class="text-center mb-4">
+                            <p class="text-muted mb-2">Or sign in with</p>
+                            <div class="d-flex justify-content-center gap-3">
+                                <button type="button" class="btn btn-outline-primary btn-sm">
+                                    <i class="fab fa-google me-2"></i>Google
+                                </button>
+                                <button type="button" class="btn btn-outline-primary btn-sm">
+                                    <i class="fab fa-facebook me-2"></i>Facebook
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="text-center pt-3 border-top">
+                            <p class="text-muted mb-0">Don't have an account?
+                                <a href="{{ route('register') }}" class="text-decoration-none fw-semibold text-berry-wine">
+                                    Create one now
+                                </a>
+                            </p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <p class="text-muted">
+                    By signing in, you agree to our 
+                    <a href="#" class="text-decoration-none text-ocean-noir">Terms of Service</a> and 
+                    <a href="#" class="text-decoration-none text-ocean-noir">Privacy Policy</a>
+                </p>
+            </div>
         </div>
+    </div>
+</div>
 
-        <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
-
-            <x-text-input id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="current-password" />
-
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
-
-        <!-- Remember Me -->
-        <div class="block mt-4">
-            <label for="remember_me" class="inline-flex items-center">
-                <input id="remember_me" type="checkbox" class="rounded dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-indigo-600 shadow-sm focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:focus:ring-offset-gray-800" name="remember">
-                <span class="ms-2 text-sm text-gray-600 dark:text-gray-400">{{ __('Remember me') }}</span>
-            </label>
-        </div>
-
-        <div class="flex items-center justify-end mt-4">
-            @if (Route::has('password.request'))
-                <a class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800" href="{{ route('password.request') }}">
-                    {{ __('Forgot your password?') }}
-                </a>
-            @endif
-
-            <x-primary-button class="ms-3">
-                {{ __('Log in') }}
-            </x-primary-button>
-        </div>
-    </form>
-</x-guest-layout>
+<style>
+    .form-control-lg {
+        padding: 12px 16px;
+        border-radius: 10px;
+        border: 2px solid #e0e0e0;
+        transition: all 0.3s;
+    }
+    
+    .form-control-lg:focus {
+        border-color: var(--ocean-noir);
+        box-shadow: 0 0 0 0.25rem rgba(17, 70, 101, 0.25);
+    }
+    
+    .form-check-input:checked {
+        background-color: var(--ocean-noir);
+        border-color: var(--ocean-noir);
+    }
+    
+    .card {
+        border-radius: 20px;
+    }
+</style>
+@endsection
